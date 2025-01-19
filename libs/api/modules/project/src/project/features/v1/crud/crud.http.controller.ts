@@ -11,6 +11,7 @@ import {
   HttpCode,
   Injectable,
   ValidationPipe,
+  NotFoundException as NotFoundHttpException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -28,7 +29,7 @@ import {
   projectValidationSchema,
 } from '@owl-app/lib-contracts';
 
-import { AssemblerQueryService, InjectAssemblerQueryService } from '@owl-app/nestjs-query-core';
+import { InjectAssemblerQueryService } from '@owl-app/nestjs-query-core';
 import { UUIDValidationPipe } from '@owl-app/lib-api-core/pipes/uuid-validation.pipe';
 import { ApiErrorResponse } from '@owl-app/lib-api-core/api/api-error.response';
 import type { DataProvider } from '@owl-app/lib-api-core/data-provider/data.provider';
@@ -36,6 +37,8 @@ import { InjectPaginatedQueryService } from '@owl-app/lib-api-core/data-provider
 import { Paginated } from '@owl-app/lib-api-core/pagination/pagination';
 import { RoutePermissions } from '@owl-app/lib-api-core/rbac/decorators/route-permission';
 import { ValibotValidationPipe } from '@owl-app/lib-api-core/validation/valibot.pipe';
+import { AppAssemblerQueryService } from '@owl-app/lib-api-core/query/core/services/app-assembler-query.service';
+import { NotFoundException } from '@owl-app/lib-api-core/exceptions/exceptions';
 
 import { ProjectEntity } from '../../../../domain/entity/project.entity';
 import { ProjectResponse } from '../../../dto/project.response';
@@ -56,7 +59,7 @@ import { ProjectPaginatedQuery } from './dto/project-paginated.query';
 export class ProjectCrudController {
   constructor(
     @InjectAssemblerQueryService(ProjectAssembler)
-    readonly service: AssemblerQueryService<ProjectResponse, ProjectEntity>,
+    readonly service: AppAssemblerQueryService<ProjectResponse, ProjectEntity>,
     @InjectPaginatedQueryService(ProjectEntity)
     readonly paginatedService: DataProvider<
       Paginated<ProjectEntity>,
@@ -99,7 +102,15 @@ export class ProjectCrudController {
     @Body(new ValibotValidationPipe(projectValidationSchema))
     createProjectRequest: CreateProjectRequest
   ) {
-    const created = await this.service.createOne(createProjectRequest);
+    let created;
+
+    try {
+      created = await this.service.createWithRelations(createProjectRequest);
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundHttpException(error.message);
+      }
+    }
 
     return created;
   }
@@ -125,7 +136,17 @@ export class ProjectCrudController {
     @Body(new ValibotValidationPipe(projectValidationSchema))
     updateProjectRequest: UpdateProjectRequest
   ): Promise<ProjectResponse> {
-    const updated = await this.service.updateOne(id, updateProjectRequest);
+    let updated;
+
+    try {
+      updated = await this.service.updateWithRelations(id, updateProjectRequest);
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundHttpException(error.message);
+      }
+
+      throw error;
+    }
 
     return updated;
   }

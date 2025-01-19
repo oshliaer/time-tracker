@@ -1,47 +1,63 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
-import { SeederConstructor } from 'typeorm-extension';
+import { SeederConstructor, SeederFactoryItem } from 'typeorm-extension';
 import { urlencoded, json } from 'express';
 import cookieParser from 'cookie-parser';
 
 import {
+  CanActivate,
   ClassSerializerInterceptor,
   DynamicModule,
   ForwardReference,
   INestApplication,
+  Provider,
   Type,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 
-import { APP_CONFIG_NAME, IConfigApp } from '@owl-app/lib-api-core/config';
-import { JwtAuthGuard } from '@owl-app/lib-api-core/passport/jwt.guard';
-import { RoutePermissionGuard } from '@owl-app/lib-api-core/rbac/guards/route-permission.guard';
+import { Class } from '@owl-app/types';
 
 import { dbInitializer } from './db/initializer';
 import { dbSeeder } from './db/seeder';
+import { SeederRegistry } from './db/seeder.registry';
 
-export async function bootstrap(
-  modules: Array<Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference>,
-  dbOptions: DataSourceOptions,
-  getSeeds: (configService: ConfigService) => SeederConstructor[]
-): Promise<INestApplication> {
-  await dbInitializer(dbOptions);
+export interface SeedOptions {
+  seeds: (configService: ConfigService) => SeederConstructor[];
+  factories: (configService: ConfigService) => SeederFactoryItem[];
+}
+
+export interface BootstrapOptions {
+  modules: Array<Type<any> | DynamicModule | Promise<DynamicModule> | ForwardReference>;
+  db: DataSourceOptions;
+  seed: SeedOptions;
+  guards?: Class<CanActivate>[];
+  prefix?: string;
+  providers?: Provider[];
+}
+
+export async function bootstrap(options: BootstrapOptions): Promise<[INestApplication, SeederRegistry]> {
+  await dbInitializer(options.db);
 
   const moduleRef = await Test.createTestingModule({
-    imports: modules,
+    imports: options.modules,
+    providers: options.providers ?? [],
   }).compile();
 
   const app = moduleRef.createNestApplication({
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
   const configService = app.get(ConfigService);
-  const { version, prefix } = configService.get<IConfigApp>(APP_CONFIG_NAME);
-  const globalPrefix = `${prefix}/${version}`;
 
-  await dbSeeder(app.get(DataSource), getSeeds(configService));
+  const seederRegistry = await dbSeeder(
+    app.get(DataSource),
+    options?.seed?.seeds(configService) ?? [],
+    options?.seed?.factories(configService) ?? []
+  );
 
-  app.setGlobalPrefix(globalPrefix);
+  if (options.prefix) {
+    app.setGlobalPrefix(options.prefix);
+  }
 
   const allowedHeaders = [
     'Authorization',
@@ -74,10 +90,10 @@ export async function bootstrap(
   });
 
   const reflector = app.get(Reflector);
-  app.useGlobalGuards(new JwtAuthGuard(reflector));
-  app.useGlobalGuards(new RoutePermissionGuard(reflector));
+
+  options?.guards?.forEach((Guard) => app.useGlobalGuards(new Guard(reflector)));
 
   await app.init();
 
-  return app;
+  return [app, seederRegistry];
 }

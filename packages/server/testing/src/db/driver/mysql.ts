@@ -1,22 +1,22 @@
+import { DataSourceOptions } from 'typeorm';
 import { MysqlDriver } from 'typeorm/driver/mysql/MysqlDriver';
 import {
   buildDriverOptions,
   createDriver,
   createSimpleMySQLConnection,
-  DatabaseDropContext,
   executeSimpleMysqlQuery,
   OptionsError,
 } from 'typeorm-extension';
 
-export async function truncateMySQLDatabase(context?: DatabaseDropContext) {
-  if (!context.options) {
+export async function truncateMySQLDatabase(options?: DataSourceOptions) {
+  if (!options) {
     throw OptionsError.undeterminable();
   }
 
-  const options = buildDriverOptions(context.options);
-  const driver = createDriver(context.options) as MysqlDriver;
+  const driverOptions = buildDriverOptions(options);
+  const driver = createDriver(options) as MysqlDriver;
 
-  const connection = await createSimpleMySQLConnection(driver, options);
+  const connection = await createSimpleMySQLConnection(driver, driverOptions);
 
   const query = `
     SELECT CONCAT('TRUNCATE TABLE ', TABLE_NAME, ';') AS sql_command
@@ -25,7 +25,10 @@ export async function truncateMySQLDatabase(context?: DatabaseDropContext) {
   `;
 
   await executeSimpleMysqlQuery(connection, 'SET FOREIGN_KEY_CHECKS=0;', false);
-  const result = (await executeSimpleMysqlQuery(connection, query, false)) as Record<string, any>[];
+  const result = (await executeSimpleMysqlQuery(connection, query, false)) as Record<
+    string,
+    never
+  >[];
   await executeSimpleMysqlQuery(connection, `USE ${options.database}`, false);
   // eslint-disable-next-line no-restricted-syntax
   for (const row of result) {

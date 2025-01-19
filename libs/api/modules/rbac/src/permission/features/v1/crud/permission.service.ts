@@ -31,21 +31,36 @@ export class PermissionService extends AppTypeOrmQueryService<PermissionEntity> 
   ): Promise<PermissionEntity> {
     this.resolveName(record);
 
-    await this.rbacManager.addPermission(mapper.toPersistence(record), [
+    const permission = mapper.toPersistence(record);
+
+    await this.rbacManager.addPermission(permission, [
       { name: 'collection', value: record.collection },
       { name: 'refer', value: record.refer },
     ]);
 
-    return Object.assign(mapper.toResponse(record));
+    return Object.assign(
+      mapper.toResponse({
+        ...record,
+        createdAt: permission.createdAt,
+        updatedAt: permission.updatedAt,
+      })
+    );
   }
 
   async updateOne(
     id: number | string,
     update: DeepPartial<PermissionEntity>
   ): Promise<PermissionEntity> {
-    await this.rbacManager.updatePermission(id as string, mapper.toPersistence(update));
+    const existPermission = await this.findById(id as string);
 
-    return mapper.toResponse(update);
+    const permission = mapper.toPersistence({
+      ...existPermission,
+      ...update,
+    });
+
+    await this.rbacManager.updatePermission(id as string, permission);
+
+    return mapper.toResponse(permission);
   }
 
   public async deleteOne(id: string | number): Promise<PermissionEntity> {

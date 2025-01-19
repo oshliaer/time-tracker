@@ -50,6 +50,7 @@ const baseSchema = v.object({
   email: v.optional(v.pipe(v.string(), v.email(), v.nonEmpty('Field is required')), ''),
   firstName: v.nullish(v.string(), null),
   lastName: v.nullish(v.string(), null),
+  phoneNumber: v.nullish(v.string(), null),
   role: v.pipe(
     v.custom((input) => input !== undefined && input !== null, 'Field is required'),
     v.nonNullish(
@@ -75,6 +76,7 @@ export const profileUserValidationSchema = createSchemaWithPasswordRepeat(
   v.object({
     firstName: v.pipe(v.string(), v.nonEmpty('Field is required')),
     lastName: v.pipe(v.string(), v.nonEmpty('Field is required')),
+    phoneNumber: v.optional(v.string(), ''),
   })
 );
 

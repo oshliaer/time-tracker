@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 export interface Role {
+  permissions?: Permission[];
   name: string;
   description?: string;
   ruleName?: string;
   setting: RoleSetting;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Permission {
@@ -14,8 +15,8 @@ export interface Permission {
   ruleName?: string;
   refer?: string;
   collection?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export enum PermissionReferType {
@@ -49,8 +50,6 @@ export interface IBaseRbacItemRequest {
 
 export interface ICreatePermissionRequest extends IBaseRbacItemRequest {}
 
-export interface IUpdatePermissionRequest extends IBaseRbacItemRequest {}
-
 export interface ICreateRoleRequest extends IBaseRbacItemRequest {}
 
 export interface IUpdateRoleRequest extends IBaseRbacItemRequest {}
@@ -60,3 +59,10 @@ export enum RolesEnum {
   ROLE_ADMIN_COMPANY = 'ROLE_ADMIN_COMPANY',
   ROLE_USER = 'ROLE_USER',
 }
+
+export type RolesOptions =
+  | RolesEnum.ROLE_ADMIN_COMPANY
+  | RolesEnum.ROLE_ADMIN_SYSTEM
+  | RolesEnum.ROLE_USER;
+
+export const AvailableRoles = Object.values<RolesEnum>(RolesEnum);

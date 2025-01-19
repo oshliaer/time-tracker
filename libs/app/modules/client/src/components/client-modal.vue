@@ -29,13 +29,13 @@
           :required-mark="true"
         />
         <va-textarea
-          v-model="data.ref.addess"
+          v-model="data.ref.address"
           label="address"
           min-rows="5"
           name="address"
           :error="!!validation['address']"
           :error-messages="validation['address']"
-          :required-mark="true"
+          :required-mark="false"
         />
         <va-textarea
           v-model="data.ref.description"
@@ -44,7 +44,7 @@
           name="description"
           :error="!!validation['description']"
           :error-messages="validation['description']"
-          :required-mark="true"
+          :required-mark="false"
         />
       </template>
 

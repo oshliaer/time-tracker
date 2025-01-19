@@ -1,20 +1,31 @@
-import { bootstrap } from '@owl-app/testing';
+import { SeederConstructor, SeederFactoryItem } from 'typeorm-extension';
 
-import { SeederConstructor } from 'typeorm-extension';
-import { INestApplication } from '@nestjs/common';
+import { TestServer } from '@owl-app/testing';
+
+import { JwtAuthGuard } from '@owl-app/lib-api-core/passport/jwt.guard';
+import { RoutePermissionGuard } from '@owl-app/lib-api-core/rbac/guards/route-permission.guard';
+
 import { BootstrapModule } from './bootstrap.module';
-import { getSeeds } from './config/seed';
+import { getSeeds, getFactoriesSeeds } from './config/seed';
 import { getDbConfig } from './config/db';
 
-export async function createTest(
-  dbName: string,
-  seeds: SeederConstructor[] = []
-): Promise<INestApplication> {
-  const app = await bootstrap(
-    [BootstrapModule.forFeature(dbName)],
-    getDbConfig(dbName),
-    getSeeds(seeds)
-  );
+export interface CreateTestOptions {
+  dbName: string;
+  seeds?: SeederConstructor[];
+  factories?: SeederFactoryItem[];
+}
 
-  return app;
+export async function createTest(options: CreateTestOptions): Promise<TestServer> {
+  const testServer = await TestServer.start({
+    modules: [BootstrapModule.forFeature(options.dbName)],
+    db: getDbConfig(options.dbName),
+    seed: {
+      seeds: getSeeds(options?.seeds),
+      factories: getFactoriesSeeds(options?.factories),
+    },
+    guards: [JwtAuthGuard, RoutePermissionGuard],
+    prefix: `${process.env.APP_API_PREFIX}/${process.env.APP_API_VERSION}`,
+  });
+
+  return testServer;
 }

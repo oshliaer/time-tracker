@@ -20,7 +20,9 @@ export class RbacPermissionMapper<
       request.description,
       request.ruleName,
       request.createdAt || new Date(),
-      request.updatedAt || new Date()
+      request.updatedAt || new Date(),
+      request.collection || null,
+      request.refer || null
     );
   }
 
@@ -32,6 +34,8 @@ export class RbacPermissionMapper<
     role.ruleName = item.ruleName;
     role.refer = item.refer;
     role.collection = item.collection;
+    role.createdAt = item.createdAt;
+    role.updatedAt = item.updatedAt;
 
     return role;
   }

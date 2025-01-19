@@ -1,9 +1,16 @@
-import { DataSource } from "typeorm";
-import { runSeeders, SeederConstructor } from "typeorm-extension";
+import { DataSource } from 'typeorm';
+import { runSeeders, SeederConstructor, SeederFactoryItem } from 'typeorm-extension';
+import { SeederRegistry, TestSeederRegistry } from './seeder.registry';
 
-export async function dbSeeder(dataSource: DataSource, seeds: SeederConstructor[]) {
-  await runSeeders(dataSource, {
-    seedTracking: process.env.APP_ENV === 'dev',
-    seeds
-  });
+export async function dbSeeder(
+  dataSource: DataSource,
+  seeds: SeederConstructor[] = [],
+  factories: SeederFactoryItem[] = []
+): Promise<SeederRegistry> {
+  return new TestSeederRegistry(
+    await runSeeders(dataSource, {
+      seeds,
+      factories,
+    })
+  );
 }
